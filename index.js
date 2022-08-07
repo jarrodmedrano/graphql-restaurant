@@ -1,6 +1,6 @@
-var { graphqlHTTP } = require("express-graphql");
-var { buildSchema, assertInputType } = require("graphql");
-var express = require("express");
+import express from "express";
+import { graphqlHTTP } from "express-graphql";
+import { buildSchema, assertInputType } from "graphql";
 
 // Construct a schema, using GraphQL schema language
 var restaurants = [
@@ -86,26 +86,36 @@ type DeleteResponse{
 type Mutation{
   setrestaurant(input: restaurantInput): restaurant
   deleterestaurant(id: Int!): DeleteResponse
-  editrestaurant(id: Int!, name: String!): restaurant
+  editrestaurant(id: Int!, input: restaurantInput!): restaurant
 }
 `);
 // The root provides a resolver function for each API endpoint
 
 var root = {
-  restaurant: (arg) => {
-    // Your code goes here
-  },
-  restaurants: () => {
-    // Your code goes here
-  },
+  restaurant: (arg) => restaurants[arg.id],
+  restaurants: () => restaurants,
   setrestaurant: ({ input }) => {
-    // Your code goes here
+    restaurants.push({ name: input.name, description: input.description });
+    return restaurants;
   },
   deleterestaurant: ({ id }) => {
-    // Your code goes here
+    const ok = Boolean(restaurants[id]);
+    if (!restaurants[id]) {
+      throw new Error("restaurant doesn't exist");
+    } else {
+      restaurants = restaurants.filter((item) => item.id !== id);
+    }
+    return { ok };
   },
-  editrestaurant: ({ id, ...restaurant }) => {
-    // Your code goes here
+  editrestaurant: ({ id, input }) => {
+    restaurants.map((restaurant) => {
+      if (restaurant.id === id) {
+        restaurant.name = input.name;
+        restaurant.description = input.description;
+        return restaurant;
+      }
+    });
+    return restaurants.filter((restaurant) => restaurant.id === id)[0];
   },
 };
 var app = express();
